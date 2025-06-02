@@ -15,6 +15,14 @@ research question and some prior work (background)
 
 ### Univariate Analysis
 
+<iframe
+  src="assets/calorie_dist.html"
+  width="800"
+  height="600"
+  frameborder="0"
+></iframe>
+
+
 ### Bivariate Analysis
 
 ### Interesting Aggregates
