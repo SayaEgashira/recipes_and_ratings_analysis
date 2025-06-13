@@ -136,7 +136,7 @@ I grouped the DataFrame by `'tag_combo'` column to obtain the mean rating for ta
 | healthy only    |       4.60457 |
 | both            |       4.60167 |
 
-The following table was also created by grouping the DataFrame by `'tag_combo'`, but I applied the aggregate function `mean()` to all the values obtained from the original `'nutrition'` column. Interestingly, mean `'sugar_PDV'` and mean `'sodium_PDV'` were the highest for "healthy only" recipes, which contradicts to the intuition that sugarly or salty foods are not good for health.
+The following table was also created by grouping the DataFrame by `'tag_combo'`, but I applied the aggregate function `mean()` to all the values obtained from the original `'nutrition'` column. Interestingly, mean `'sugar_PDV'` and mean `'sodium_PDV'` were the highest for "healthy only" recipes, which contradicts to the general impression that sugarly or salty foods are not good for health.
 
 | tag_combo       |   calories |   total_fat_PDV |   sugar_PDV |   sodium_PDV |   protein_PDV |   sat_fat_PDV |   carbs_PDV |
 |:----------------|-----------:|----------------:|------------:|-------------:|--------------:|--------------:|------------:|
@@ -214,12 +214,27 @@ My model will try to predict the rating that a person would post when a recipe f
 
 ## Baseline Model
 
-For the baseline model, I tried to predict `'rating'` using a Random Forest classifier based on three features: `'is_vegetarian'`, `'is_healthy'`, and `'calories'`. The numerical feature `'calories'` were scaled using a `StandardScaler`. Transformations on `'is_vegetarian'` and `'is_healthy'` would not be required since they are already stored as Boolean values (1 for True, 0 for False). The model employed class weighting (`class_weight='balanced'`) to partially address the severe rating imbalance in the dataset, where 5-star ratings comprise about 70% of observations. This approach would automatically adjust weights so the model pays proportionate attention to minority classes. The baseline model achieved a macro-averaged F1-score of 0.18 ([0.01,0.02,0.05,0.26,0.55] for classes [1,2,3,4,5], respectively), indicating a poor performance across all rating categories. The model failed almost completely on 1-3 star ratings, demonstrating that this baseline model performs especially poorly for distinguishing lower ratings. To improve the model, I plan to try different `class_weight` for a better balance between classes and incorporate additional features from the dataset and engineer new features.
+For the baseline model, I tried to predict `'rating'` using a Random Forest classifier based on three features: `'is_vegetarian'`, `'is_healthy'`, and `'calories'`. The numerical feature `'calories'` were scaled using a `StandardScaler`. Transformations on `'is_vegetarian'` and `'is_healthy'` would not be required since they are already stored as Boolean values (1 for True, 0 for False). The model employed class weighting (`class_weight='balanced'`) to partially address the severe rating imbalance in the dataset, where 5-star ratings comprise about 70% of observations. This approach would automatically adjust weights so the model pays proportionate attention to minority classes. The baseline model achieved a macro-averaged F1-score of 0.18 ([0.01,0.02,0.06,0.27,0.55] for classes [1,2,3,4,5], respectively), indicating a poor performance across all rating categories. The model failed almost completely on 1-3 star ratings, demonstrating that this baseline model performs especially poorly for distinguishing lower ratings. To improve the model, I plan to try different `class_weight` for a better balance between classes and incorporate additional features from the dataset and engineer new features.
 
 
 ## Final Model
 
-
+To improve upon the baseline, I developed a few models that expands the feature set and instroduces a more expressive learning algorithm. For the final model, I used `XGBClassifier`, which often outperforms random forests in multiclass classification. In addition to the `'calories'` and `'is_healthy'` features from the baseline model, I incorporated the `'sugar_PDV'`, `'protein_PDV'`, and `'tag_combo'` features in my final model. I excluded the `'is_vegetarian'` feature because it downgraded the performance, possibly due to its lack of importance in predicting the recipe's rating. `'calories'`, `'sugar_PDV'`, and `'protein_PDV'` are all extracted from the original `'nutrition'` column, and I chose to apply `RobustScaler` instead of `StandardScaler` to more effectively deal with their skewed distribution and outliers. `'tag_combo'` is a categorical feature, so I decided to encode them using the one-hot encoding technique. The `'is_healthy'` feature was kept as is from the baseline model. The final model achieved a macro-averaed F1-score of 0.20 ([0.02,0.02,0.05,0.17,0.73] for calsses [1,2,3,4,5], respectively). The F1-score is still not the best, but this model at least showed a slight improvement from the baseline model. The improvement might have stemmed from both the added features and the switch to a more powerful model.
 
 
 ## Fairness Analysis
+
+For the fairness analysis, I conducted a permutation test with the following hypotheses:
+
+- **Null Hypothesis:** Our model is fair on the `'is_healthy'` column. My model perform in the same way for both "healthy" recipes and not "healthy" recipes.
+- **Alternative Hypothesis:** Our model is not fair on the `'is_healthy'` column. My final model perform worse for the not "healthy" recipes than "healthy" recipes.
+- **Significance Level:** $\alpha=0.05$
+
+<iframe
+  src="assets/perm_fairness_is_healthy.html"
+  width="900"
+  height="600"
+  frameborder="0"
+></iframe>
+
+The p-value was 0.684. There seems to be no statistical evidence that the model performs worse on non-healthy-labeled recipes than on healthy ones. The observed difference in macro F1-score between the two groups is likely due to chance.
